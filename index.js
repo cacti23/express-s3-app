@@ -2,7 +2,13 @@ require("dotenv").config();
 const express = require("express");
 const multer = require("multer");
 const crypto = require("crypto");
-const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
+const {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} = require("@aws-sdk/client-s3");
 const sharp = require("sharp");
 
 const connectDB = require("./utils/connectDb");
@@ -29,7 +35,21 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 app.get("/api/posts", async (req, res) => {
-  res.send({ message: "inside get -> posts" });
+  const posts = await Post.find({});
+
+  for (const post of posts) {
+    // For each post, generate a signed URL and save it to the post object
+    const getObjectParams = {
+      Bucket: process.env.BUCKET_NAME,
+      Key: post.imageName,
+    };
+
+    const command = new GetObjectCommand(getObjectParams);
+    const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+    post.imageUrl = url;
+  }
+
+  res.send(posts);
 });
 
 app.post("/api/posts", upload.single("image"), async (req, res) => {
@@ -59,6 +79,24 @@ app.post("/api/posts", upload.single("image"), async (req, res) => {
 });
 
 app.delete("/api/posts/:id", async (req, res) => {
+  const post = await Post.findById(req.params.id);
+
+  if (!post) {
+    res.status(404).send({ message: "Post not found" });
+    return;
+  }
+
+  const params = {
+    Bucket: process.env.BUCKET_NAME,
+    Key: post.imageName,
+  };
+
+  const command = new DeleteObjectCommand(params);
+
+  await s3.send(command);
+
+  await Post.deleteOne({ _id: req.params.id });
+
   res.send({ message: "inside delete -> posts" });
 });
 
