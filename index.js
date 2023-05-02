@@ -1,9 +1,13 @@
 require("dotenv").config();
 const express = require("express");
 const multer = require("multer");
+const crypto = require("crypto");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 
 const connectDB = require("./utils/connectDb");
+
+const randomImageNames = (bytes = 32) =>
+  crypto.randomBytes(bytes).toString("hex");
 
 const s3 = new S3Client({
   credentials: {
@@ -29,7 +33,7 @@ app.get("/api/posts", async (req, res) => {
 app.post("/api/posts", upload.single("image"), async (req, res) => {
   const params = {
     Bucket: process.env.BUCKET_NAME,
-    Key: req.file.originalname,
+    Key: randomImageNames(),
     Body: req.file.buffer,
     ContentType: req.file.mimetype,
   };
