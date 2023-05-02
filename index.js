@@ -6,6 +6,7 @@ const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
 const sharp = require("sharp");
 
 const connectDB = require("./utils/connectDb");
+const Post = require("./schemas/post");
 
 const randomImageNames = (bytes = 32) =>
   crypto.randomBytes(bytes).toString("hex");
@@ -32,6 +33,7 @@ app.get("/api/posts", async (req, res) => {
 });
 
 app.post("/api/posts", upload.single("image"), async (req, res) => {
+  const imageName = randomImageNames();
   // resize image
   const fileBuffer = await sharp(req.file.buffer)
     .resize({ height: 1920, width: 1080, fit: "contain" })
@@ -39,7 +41,7 @@ app.post("/api/posts", upload.single("image"), async (req, res) => {
 
   const params = {
     Bucket: process.env.BUCKET_NAME,
-    Key: randomImageNames(),
+    Key: imageName,
     Body: fileBuffer,
     ContentType: req.file.mimetype,
   };
@@ -48,7 +50,12 @@ app.post("/api/posts", upload.single("image"), async (req, res) => {
 
   await s3.send(command);
 
-  res.send({ message: "inside post -> posts" });
+  const newPost = await Post.create({
+    imageName: imageName,
+    caption: req.body.caption,
+  });
+
+  res.send(newPost);
 });
 
 app.delete("/api/posts/:id", async (req, res) => {
