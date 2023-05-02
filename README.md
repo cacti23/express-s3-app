@@ -4,3 +4,4 @@
 -> in order to access the s3 bucket first create a policy for that bucket
 -> when the policy is created create a IAM user and apply that policy
 -> if you upload the file with the same that is exactly same with a file already present in s3 then it would override the existing file
+-> sharp package can be used to modify the image

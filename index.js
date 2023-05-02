@@ -3,6 +3,7 @@ const express = require("express");
 const multer = require("multer");
 const crypto = require("crypto");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const sharp = require("sharp");
 
 const connectDB = require("./utils/connectDb");
 
@@ -31,10 +32,15 @@ app.get("/api/posts", async (req, res) => {
 });
 
 app.post("/api/posts", upload.single("image"), async (req, res) => {
+  // resize image
+  const fileBuffer = await sharp(req.file.buffer)
+    .resize({ height: 1920, width: 1080, fit: "contain" })
+    .toBuffer();
+
   const params = {
     Bucket: process.env.BUCKET_NAME,
     Key: randomImageNames(),
-    Body: req.file.buffer,
+    Body: fileBuffer,
     ContentType: req.file.mimetype,
   };
 
