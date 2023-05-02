@@ -1,5 +1,6 @@
 const express = require("express");
-const mongoose = require("mongoose");
+const multer = require("multer");
+
 const connectDB = require("./utils/connectDb");
 require("dotenv").config();
 
@@ -9,11 +10,17 @@ app.use(express.json());
 
 connectDB();
 
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
+
 app.get("/api/posts", async (req, res) => {
   res.send({ message: "inside get -> posts" });
 });
 
-app.post("/api/posts", async (req, res) => {
+app.post("/api/posts", upload.single("image"), async (req, res) => {
+  console.log("req.body", req.body);
+  console.log("req.file", req.file);
+
   res.send({ message: "inside post -> posts" });
 });
 
